@@ -1,6 +1,7 @@
 GO        ?= go
 DEBUG     ?= 0
 VERBOSE   ?= 0
+CODECOV   ?= 0
 
 ifneq ($(DEBUG),0)
 GO_TEST_FLAGS        += -count=1
@@ -8,6 +9,9 @@ endif
 ifneq ($(VERBOSE),0)
 GO_TEST_FLAGS        += -v
 GO_TEST_BENCH_FLAGS  += -v
+endif
+ifneq ($(CODECOV),0)
+GO_TEST_FLAGS        += -coverprofile=coverage.txt -covermode=atomic
 endif
 
 GO_TOOLS_GOLANGCI_LINT ?= $(shell $(GO) env GOPATH)/bin/golangci-lint

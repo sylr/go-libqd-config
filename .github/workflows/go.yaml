@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.14", "1.15"]
+        go: ["1.15", "1.16"]
     steps:
     - name: Set up Go ${{ matrix.go }}
       uses: actions/setup-go@v1
@@ -21,4 +21,9 @@ jobs:
     - name: Lint
       run: make lint
     - name: Test
-      run: make test
+      run: make test CODECOV=1
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        files: coverage.txt
+      if: matrix.go == '1.16'
