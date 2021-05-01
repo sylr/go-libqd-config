@@ -86,6 +86,13 @@ func TestMyConfig(t *testing.T) {
 		return
 	}
 
+	err = tmpFile.Close()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
 	defer os.Remove(tmpFile.Name())
 
 	// Logger and test log wrapper
