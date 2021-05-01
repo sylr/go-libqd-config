@@ -1,6 +1,7 @@
 GO        ?= go
 DEBUG     ?= 0
 VERBOSE   ?= 0
+CODECOV   ?= 0
 
 ifneq ($(DEBUG),0)
 GO_TEST_FLAGS        += -count=1
@@ -8,6 +9,9 @@ endif
 ifneq ($(VERBOSE),0)
 GO_TEST_FLAGS        += -v
 GO_TEST_BENCH_FLAGS  += -v
+endif
+ifneq ($(CODECOV),0)
+GO_TEST_FLAGS        += -coverprofile=coverage.txt -covermode=atomic
 endif
 
 GO_TOOLS_GOLANGCI_LINT ?= $(shell $(GO) env GOPATH)/bin/golangci-lint
@@ -41,8 +45,7 @@ $(GO_TOOLS_GOLANGCI_LINT):
 .PHONY: go-mod-verify go-mod-tidy
 .ONESHELL: go-mod-verify go-mod-tidy
 
-go-mod-verify:
-	$(GO) mod download
+go-mod-verify: go-mod-tidy
 	git diff --quiet go.* || git diff --exit-code go.* || exit 1
 
 go-mod-tidy:
