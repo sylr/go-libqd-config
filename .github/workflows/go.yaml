@@ -18,6 +18,7 @@ jobs:
       uses: actions/checkout@v1
     - name: Verify go mod
       run: make go-mod-verify
+      if: matrix.go == '1.16'
     - name: Lint
       run: make lint
     - name: Test
