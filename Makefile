@@ -40,7 +40,7 @@ $(GO_TOOLS_GOLANGCI_LINT):
 	GO111MODULE=on $(GO) get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.27.0
 
 
-# -- $(GO) mod --------------------------------------------------------------------
+# -- go mod --------------------------------------------------------------------
 
 .PHONY: go-mod-verify go-mod-tidy
 .ONESHELL: go-mod-verify go-mod-tidy
