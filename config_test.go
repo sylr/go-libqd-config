@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/atomic"
 	"sylr.dev/yaml/v3"
 )
 
@@ -51,26 +52,35 @@ func (in MyConfig) ConfigFile() string {
 
 type testLogger struct {
 	*testing.T
+	closed atomic.Bool
 }
 
 func (t *testLogger) Tracef(format string, vals ...interface{}) {
 	t.Helper()
-	t.Logf("go-libqd/config: "+format, vals...)
+	if !t.closed.Load() {
+		t.Logf("go-libqd/config: "+format, vals...)
+	}
 }
 
 func (t *testLogger) Debugf(format string, vals ...interface{}) {
 	t.Helper()
-	t.Logf("go-libqd/config: "+format, vals...)
+	if !t.closed.Load() {
+		t.Logf("go-libqd/config: "+format, vals...)
+	}
 }
 
 func (t *testLogger) Infof(format string, vals ...interface{}) {
 	t.Helper()
-	t.Logf("go-libqd/config: "+format, vals...)
+	if !t.closed.Load() {
+		t.Logf("go-libqd/config: "+format, vals...)
+	}
 }
 
 func (t *testLogger) Warnf(format string, vals ...interface{}) {
 	t.Helper()
-	t.Logf("go-libqd/config: "+format, vals...)
+	if !t.closed.Load() {
+		t.Logf("go-libqd/config: "+format, vals...)
+	}
 }
 
 func TestMyConfig(t *testing.T) {
@@ -79,8 +89,14 @@ func TestMyConfig(t *testing.T) {
 	defer cancel()
 
 	// Create temporary file for config
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "libqd-config-")
+	tmpFile, err := ioutil.TempFile(t.TempDir(), "libqd-config-")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
+	// Sync file to avoid mutliple notifiers
+	err = tmpFile.Sync()
 	if err != nil {
 		t.Error(err)
 		return
@@ -89,7 +105,7 @@ func TestMyConfig(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	// Logger and test log wrapper
-	logger := &testLogger{t}
+	logger := &testLogger{t, atomic.Bool{}}
 
 	myConfig := &MyConfig{
 		// We need to define it otherwise yaml.Marshal will set it to empty
@@ -98,20 +114,23 @@ func TestMyConfig(t *testing.T) {
 	}
 
 	yml, err := yaml.Marshal(myConfig)
-
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
 	err = ioutil.WriteFile(tmpFile.Name(), yml, 0)
-
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	time.Sleep(10 * time.Microsecond)
+	// Sync file to avoid mutliple notifiers
+	err = tmpFile.Sync()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
 	// Override go test os.Args
 	os.Args = []string{
@@ -131,7 +150,6 @@ func TestMyConfig(t *testing.T) {
 		if currentConfig != nil {
 			// Casting currentConfig from Config to (*MyConfig)
 			currentConf, ok = currentConfig.(*MyConfig)
-
 			if !ok {
 				errs = append(errs, fmt.Errorf("Can not cast currentConfig to MyConfig"))
 				return errs
@@ -171,14 +189,12 @@ func TestMyConfig(t *testing.T) {
 
 		if currentConfig != nil {
 			currentConf, ok = currentConfig.(*MyConfig)
-
 			if !ok {
 				return fmt.Errorf("Can not cast currentConfig to (*MyConfig)")
 			}
 		}
 
 		newConf, ok := newConfig.(*MyConfig)
-
 		if !ok {
 			return fmt.Errorf("Can not cast newConfig to (*MyConfig)")
 		}
@@ -191,13 +207,13 @@ func TestMyConfig(t *testing.T) {
 		return err
 	}
 
+	name := interface{}(tmpFile)
 	confManager := GetManager(logger)
-	confManager.AddValidators(nil, validator)
-	confManager.AddAppliers(nil, applier)
+	confManager.AddValidators(name, validator)
+	confManager.AddAppliers(name, applier)
 
 	// Launch config
-	err = confManager.MakeConfig(ctx, nil, myConfig)
-
+	err = confManager.MakeConfig(ctx, name, myConfig)
 	if err != nil {
 		t.Error(err)
 		return
@@ -207,21 +223,19 @@ func TestMyConfig(t *testing.T) {
 		t.Errorf("a=%d but should be 0", a)
 	}
 
-	m := confManager.GetConfig(nil).(*MyConfig)
+	m := confManager.GetConfig(name).(*MyConfig)
 
 	t.Logf("%#v", m)
 
-	c := confManager.NewConfigChan(nil)
+	c := confManager.NewConfigChan(name)
 
 	yml, err = yaml.Marshal(myConfig)
-
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
 	err = ioutil.WriteFile(tmpFile.Name(), yml, 0)
-
 	if err != nil {
 		t.Error(err)
 		return
@@ -239,4 +253,8 @@ func TestMyConfig(t *testing.T) {
 	if a != 1 {
 		t.Errorf("a=%d but should be 1", a)
 	}
+
+	// Background go routine might want to log after the test is finished and that
+	// triggers a panic so we close the logger here to prevent that.
+	logger.closed.Store(true)
 }
