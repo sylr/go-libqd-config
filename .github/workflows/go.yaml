@@ -22,7 +22,7 @@ jobs:
     - name: Lint
       run: make lint
     - name: Test
-      run: make test CODECOV=1
+      run: make test CODECOV=1 VERBOSE=1
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:

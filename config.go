@@ -96,7 +96,7 @@ func (m *Manager) MakeConfig(ctx context.Context, name interface{}, config Confi
 	}
 
 	if _, ok := m.watchers[name]; ok {
-		return fmt.Errorf("The configuration `%v` already exists", name)
+		return fmt.Errorf("configuration `%v` already exists", name)
 	}
 
 	fsnotify, err := fsnotify.NewWatcher()
@@ -122,7 +122,7 @@ func (m *Manager) MakeConfig(ctx context.Context, name interface{}, config Confi
 			m.logger.Errorf("Error while validating new conf: %v", err)
 		}
 
-		err = fmt.Errorf("New configuration not applied because error(s) have been found")
+		err = fmt.Errorf("new configuration not applied because error(s) have been found")
 		return err
 	}
 
