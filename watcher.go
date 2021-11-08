@@ -103,6 +103,7 @@ func (w *watcher) watchConfigFile(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			w.logger.Debugf("fsnotify: context closed")
 			return
 		case err, ok := <-w.Errors:
 			if !ok {
@@ -132,17 +133,13 @@ func (w *watcher) watchConfigFile(ctx context.Context) {
 					break
 				}
 			} else if event.Op&fsnotify.Remove == fsnotify.Remove {
-				w.logger.Debugf("Config file removed, probably your editor replacing file when saving")
-
-				err := w.Remove(event.Name)
-				if err != nil {
-					w.logger.Errorf("fsnotify: %w", err)
-				}
+				w.logger.Debugf("Config file removed")
 
 				err = w.Add(event.Name)
 				if err != nil {
-					w.logger.Errorf("fsnotify: %w", err)
+					w.logger.Errorf("fsnotify: %s", err)
 				}
+				break
 			} else {
 				break
 			}
@@ -164,7 +161,6 @@ func (w *watcher) readConfigCLIOptions(conf Config) {
 			os.Exit(0)
 		} else {
 			w.logger.Fatalf("%v", err)
-			os.Exit(1)
 		}
 	}
 }
@@ -205,7 +201,7 @@ func (w *watcher) loadFile(conf Config, filename string) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("parsing YAML file %s: %v", filename, err)
+		return fmt.Errorf("parsing file %s: %v", filename, err)
 	}
 
 	return nil
