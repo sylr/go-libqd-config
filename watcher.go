@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,7 +12,7 @@ import (
 	toml "github.com/BurntSushi/toml"
 	fsnotify "github.com/fsnotify/fsnotify"
 	flags "github.com/jessevdk/go-flags"
-	json "github.com/tailscale/hujson"
+	"github.com/tailscale/hujson"
 	yaml "sylr.dev/yaml/v3"
 )
 
@@ -223,13 +224,16 @@ func (w *watcher) parseYAML(conf Config, bytes []byte) error {
 
 // parseJSON parses the JSON input into a Config.
 func (w *watcher) parseJSON(conf Config, bytes []byte) error {
-	err := json.Unmarshal([]byte(bytes), conf)
+	ast, err := hujson.Parse(bytes)
 
 	if err != nil {
 		return err
 	}
 
-	return nil
+	ast.Standardize()
+	data := ast.Pack()
+
+	return json.Unmarshal(data, conf)
 }
 
 // parseTOML parses the TOML input into a Config.
