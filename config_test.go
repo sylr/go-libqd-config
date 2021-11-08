@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
+	"math/rand"
 	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -128,12 +130,22 @@ func myConfigValidator(currentConfig Config, newConfig Config) []error {
 }
 
 func TestMyConfigYAML(t *testing.T) {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	b := make([]byte, 10)
+	rand.Read(b)
+	randstr := fmt.Sprintf("%x", b)
+	tmpDir := path.Join(os.TempDir(), randstr)
+
+	// Create temporary dir
+	err := os.MkdirAll(tmpDir, os.ModePerm)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer os.RemoveAll(tmpDir)
 
 	// Create temporary file for config
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "libqd-config-*.yaml")
+	tmpFile, err := ioutil.TempFile(tmpDir, "libqd-config-*.yaml")
 	if err != nil {
 		t.Error(err)
 		return
@@ -147,12 +159,6 @@ func TestMyConfigYAML(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
-	// Logger and test log wrapper
-	logger := &testLogger{t, atomic.NewBool(false)}
-	// Background go routine might want to log after the test is finished and that
-	// triggers a panic so we close the logger here to prevent that.
-	defer logger.closed.Store(true)
 
 	myConfig := &MyConfig{
 		// We need to define it otherwise yaml.Marshal will set it to empty
@@ -220,6 +226,16 @@ func TestMyConfigYAML(t *testing.T) {
 		return err
 	}
 
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Logger and test log wrapper
+	logger := &testLogger{t, atomic.NewBool(false)}
+	// Background go routine might want to log after the test is finished and that
+	// triggers a panic so we close the logger here to prevent that.
+	defer logger.closed.Store(true)
+
 	name := interface{}(tmpFile)
 	confManager := &Manager{logger: logger}
 	confManager.AddValidators(name, myConfigValidator)
@@ -270,18 +286,28 @@ func TestMyConfigYAML(t *testing.T) {
 		return
 	}
 
-	if a != 1 {
-		t.Errorf("a=%d but should be 1", a)
+	if a < 1 {
+		t.Errorf("a=%d but should be >= 1", a)
 	}
 }
 
 func TestMyConfigTOML(t *testing.T) {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	b := make([]byte, 10)
+	rand.Read(b)
+	randstr := fmt.Sprintf("%x", b)
+	tmpDir := path.Join(os.TempDir(), randstr)
+
+	// Create temporary dir
+	err := os.MkdirAll(tmpDir, os.ModePerm)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer os.RemoveAll(tmpDir)
 
 	// Create temporary file for config
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "libqd-config-*.toml")
+	tmpFile, err := ioutil.TempFile(tmpDir, "libqd-config-*.toml")
 	if err != nil {
 		t.Error(err)
 		return
@@ -296,20 +322,16 @@ func TestMyConfigTOML(t *testing.T) {
 		return
 	}
 
-	// Logger and test log wrapper
-	logger := &testLogger{t, atomic.NewBool(false)}
-	// Background go routine might want to log after the test is finished and that
-	// triggers a panic so we close the logger here to prevent that.
-	defer logger.closed.Store(true)
-
 	myConfig := &MyConfig{
 		// We need to define it otherwise yaml.Marshal will set it to empty
 		File:    tmpFile.Name(),
 		Verbose: []bool{true, true, true},
 	}
 
+	// TOML Encoding
 	buf := bytes.NewBuffer(nil)
 	tomlEncoder := toml.NewEncoder(buf)
+
 	err = tomlEncoder.Encode(myConfig)
 	if err != nil {
 		t.Error(err)
@@ -370,6 +392,16 @@ func TestMyConfigTOML(t *testing.T) {
 		return err
 	}
 
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Logger and test log wrapper
+	logger := &testLogger{t, atomic.NewBool(false)}
+	// Background go routine might want to log after the test is finished and that
+	// triggers a panic so we close the logger here to prevent that.
+	defer logger.closed.Store(true)
+
 	name := interface{}(tmpFile)
 	confManager := &Manager{logger: logger}
 	confManager.AddValidators(name, myConfigValidator)
@@ -392,10 +424,11 @@ func TestMyConfigTOML(t *testing.T) {
 
 	c := confManager.NewConfigChan(name)
 
+	// TOML Encoding
 	buf = bytes.NewBuffer(nil)
 	tomlEncoder = toml.NewEncoder(buf)
-	err = tomlEncoder.Encode(myConfig)
 
+	err = tomlEncoder.Encode(myConfig)
 	if err != nil {
 		t.Error(err)
 		return
@@ -423,24 +456,34 @@ func TestMyConfigTOML(t *testing.T) {
 		return
 	}
 
-	if a != 1 {
-		t.Errorf("a=%d but should be 1", a)
+	if a < 1 {
+		t.Errorf("a=%d but should be >= 1", a)
 	}
 }
 
 func TestMyConfigJSON(t *testing.T) {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	b := make([]byte, 10)
+	rand.Read(b)
+	randstr := fmt.Sprintf("%x", b)
+	tmpDir := path.Join(os.TempDir(), randstr)
 
-	// Create temporary file for config
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "libqd-config-*.json")
+	// Create temporary dir
+	err := os.MkdirAll(tmpDir, os.ModePerm)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	//defer os.Remove(tmpFile.Name())
+	defer os.RemoveAll(tmpDir)
+
+	// Create temporary file for config
+	tmpFile, err := ioutil.TempFile(tmpDir, "libqd-config-*.json")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer os.Remove(tmpFile.Name())
 
 	// Sync file to avoid multiple notifiers
 	err = tmpFile.Sync()
@@ -448,12 +491,6 @@ func TestMyConfigJSON(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
-	// Logger and test log wrapper
-	logger := &testLogger{t, atomic.NewBool(false)}
-	// Background go routine might want to log after the test is finished and that
-	// triggers a panic so we close the logger here to prevent that.
-	defer logger.closed.Store(true)
 
 	myConfig := &MyConfig{
 		// We need to define it otherwise yaml.Marshal will set it to empty
@@ -521,6 +558,16 @@ func TestMyConfigJSON(t *testing.T) {
 		return err
 	}
 
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Logger and test log wrapper
+	logger := &testLogger{t, atomic.NewBool(false)}
+	// Background go routine might want to log after the test is finished and that
+	// triggers a panic so we close the logger here to prevent that.
+	defer logger.closed.Store(true)
+
 	name := interface{}(tmpFile)
 	confManager := &Manager{logger: logger}
 	confManager.AddValidators(name, myConfigValidator)
@@ -549,10 +596,14 @@ func TestMyConfigJSON(t *testing.T) {
 		return
 	}
 
-	tmpFile.Close()
-	os.Remove(tmpFile.Name())
-
 	err = ioutil.WriteFile(tmpFile.Name(), jsn, fs.FileMode(0644))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	// Sync file to avoid multiple notifiers
+	err = tmpFile.Sync()
 	if err != nil {
 		t.Error(err)
 		return
@@ -567,7 +618,7 @@ func TestMyConfigJSON(t *testing.T) {
 		return
 	}
 
-	if a != 1 {
-		t.Errorf("a=%d but should be 1", a)
+	if a < 1 {
+		t.Errorf("a=%d but should be >= 1", a)
 	}
 }
