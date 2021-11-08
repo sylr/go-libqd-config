@@ -8,6 +8,7 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/tailscale/hujson v0.0.0-20211105212140-3a0adc019d83
 	go.uber.org/atomic v1.8.0
-	golang.org/x/sys v0.0.0-20211107104306-e0b2ad06fe42 // indirect
 	sylr.dev/yaml/v3 v3.0.0-20210127132132-941109e4f08c
 )
+
+require golang.org/x/sys v0.0.0-20211107104306-e0b2ad06fe42 // indirect
