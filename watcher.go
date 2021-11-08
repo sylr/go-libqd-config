@@ -103,6 +103,7 @@ func (w *watcher) watchConfigFile(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			w.logger.Debugf("fsnotify: context closed")
 			return
 		case err, ok := <-w.Errors:
 			if !ok {
@@ -160,7 +161,6 @@ func (w *watcher) readConfigCLIOptions(conf Config) {
 			os.Exit(0)
 		} else {
 			w.logger.Fatalf("%v", err)
-			os.Exit(1)
 		}
 	}
 }

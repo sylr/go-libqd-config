@@ -15,8 +15,11 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"go.uber.org/atomic"
+	qdsync "sylr.dev/libqd/sync"
 	"sylr.dev/yaml/v3"
 )
+
+var testWg = qdsync.NewBoundedWaitGroup(1)
 
 type MyConfig struct {
 	File    string `               short:"f" long:"config"  description:"Yaml config"`
@@ -57,35 +60,67 @@ func (in MyConfig) ConfigFile() string {
 }
 
 type testLogger struct {
-	*testing.T
+	test   *testing.T
 	closed *atomic.Bool
 }
 
 func (t *testLogger) Tracef(format string, vals ...interface{}) {
-	t.Helper()
+	t.test.Helper()
 	if !t.closed.Load() {
-		t.Logf("go-libqd/config: "+format, vals...)
+		t.test.Logf("go-libqd/config: "+format, vals...)
+	} else {
+		fmt.Printf("go-libqd/config: "+format, vals...)
+		fmt.Println()
 	}
 }
 
 func (t *testLogger) Debugf(format string, vals ...interface{}) {
-	t.Helper()
+	t.test.Helper()
 	if !t.closed.Load() {
-		t.Logf("go-libqd/config: "+format, vals...)
+		t.test.Logf("go-libqd/config: "+format, vals...)
+	} else {
+		fmt.Printf("go-libqd/config: "+format, vals...)
+		fmt.Println()
 	}
 }
 
 func (t *testLogger) Infof(format string, vals ...interface{}) {
-	t.Helper()
+	t.test.Helper()
 	if !t.closed.Load() {
-		t.Logf("go-libqd/config: "+format, vals...)
+		t.test.Logf("go-libqd/config: "+format, vals...)
+	} else {
+		fmt.Printf("go-libqd/config: "+format, vals...)
+		fmt.Println()
 	}
 }
 
 func (t *testLogger) Warnf(format string, vals ...interface{}) {
-	t.Helper()
+	t.test.Helper()
 	if !t.closed.Load() {
-		t.Logf("go-libqd/config: "+format, vals...)
+		t.test.Logf("go-libqd/config: "+format, vals...)
+	} else {
+		fmt.Printf("go-libqd/config: "+format, vals...)
+		fmt.Println()
+	}
+}
+
+func (t *testLogger) Errorf(format string, vals ...interface{}) {
+	t.test.Helper()
+	if !t.closed.Load() {
+		t.test.Errorf("go-libqd/config: "+format, vals...)
+	} else {
+		fmt.Printf("go-libqd/config: "+format, vals...)
+		fmt.Println()
+	}
+}
+
+func (t *testLogger) Fatalf(format string, vals ...interface{}) {
+	t.test.Helper()
+	if !t.closed.Load() {
+		t.test.Fatalf("go-libqd/config: "+format, vals...)
+	} else {
+		fmt.Printf("go-libqd/config: "+format, vals...)
+		fmt.Println()
 	}
 }
 
@@ -130,6 +165,10 @@ func myConfigValidator(currentConfig Config, newConfig Config) []error {
 }
 
 func TestMyConfigYAML(t *testing.T) {
+	testWg.Add(1)
+	defer testWg.Done()
+	time.Sleep(time.Millisecond * 10)
+
 	b := make([]byte, 10)
 	rand.Read(b)
 	randstr := fmt.Sprintf("%x", b)
@@ -280,7 +319,7 @@ func TestMyConfigYAML(t *testing.T) {
 	// Check that a new config is sent via the channel
 	select {
 	case newConf := <-c:
-		t.Logf("%#v", newConf)
+		t.Logf("New conf: %#v", newConf)
 	case <-time.After(5 * time.Second):
 		t.Error("No new configuration received")
 		return
@@ -289,9 +328,15 @@ func TestMyConfigYAML(t *testing.T) {
 	if a < 1 {
 		t.Errorf("a=%d but should be >= 1", a)
 	}
+
+	time.Sleep(time.Millisecond * 10)
 }
 
 func TestMyConfigTOML(t *testing.T) {
+	testWg.Add(1)
+	defer testWg.Done()
+	time.Sleep(time.Millisecond * 10)
+
 	b := make([]byte, 10)
 	rand.Read(b)
 	randstr := fmt.Sprintf("%x", b)
@@ -450,7 +495,7 @@ func TestMyConfigTOML(t *testing.T) {
 	// Check that a new config is sent via the channel
 	select {
 	case newConf := <-c:
-		t.Logf("%#v", newConf)
+		t.Logf("New conf: %#v", newConf)
 	case <-time.After(5 * time.Second):
 		t.Error("No new configuration received")
 		return
@@ -459,9 +504,15 @@ func TestMyConfigTOML(t *testing.T) {
 	if a < 1 {
 		t.Errorf("a=%d but should be >= 1", a)
 	}
+
+	time.Sleep(time.Millisecond * 10)
 }
 
 func TestMyConfigJSON(t *testing.T) {
+	testWg.Add(1)
+	defer testWg.Done()
+	time.Sleep(time.Millisecond * 10)
+
 	b := make([]byte, 10)
 	rand.Read(b)
 	randstr := fmt.Sprintf("%x", b)
@@ -612,7 +663,7 @@ func TestMyConfigJSON(t *testing.T) {
 	// Check that a new config is sent via the channel
 	select {
 	case newConf := <-c:
-		t.Logf("%#v", newConf)
+		t.Logf("New conf: %#v", newConf)
 	case <-time.After(5 * time.Second):
 		t.Error("No new configuration received")
 		return
@@ -621,4 +672,6 @@ func TestMyConfigJSON(t *testing.T) {
 	if a < 1 {
 		t.Errorf("a=%d but should be >= 1", a)
 	}
+
+	time.Sleep(time.Millisecond * 10)
 }
