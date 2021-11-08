@@ -329,7 +329,7 @@ func TestMyConfigYAML(t *testing.T) {
 		t.Errorf("a=%d but should be >= 1", a)
 	}
 
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 10) // nosemgrep
 }
 
 func TestMyConfigTOML(t *testing.T) {
@@ -505,7 +505,7 @@ func TestMyConfigTOML(t *testing.T) {
 		t.Errorf("a=%d but should be >= 1", a)
 	}
 
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 10) // nosemgrep
 }
 
 func TestMyConfigJSON(t *testing.T) {
@@ -673,5 +673,5 @@ func TestMyConfigJSON(t *testing.T) {
 		t.Errorf("a=%d but should be >= 1", a)
 	}
 
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 10) // nosemgrep
 }

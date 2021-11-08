@@ -139,6 +139,7 @@ func (m *Manager) MakeConfig(ctx context.Context, name interface{}, config Confi
 
 		// Sleep a bit to let the watchConfigFile go routine the time to watch
 		// the configuration file it is supposed to.
+		// nosemgrep
 		time.Sleep(time.Millisecond)
 	}
 
